@@ -1,0 +1,10 @@
+{
+  "name": "hogwarts-voxel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Jogo voxel em primeira pessoa ambientado em Hogwarts, feito com Three.js",
+  "scripts": {
+    "start": "npx --yes http-server -c-1 -p 8080 ."
+  },
+  "license": "MIT"
+}

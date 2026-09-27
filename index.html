@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hogwarts Voxel</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    { "imports": { "three": "./lib/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <!-- HUD -->
+  <div id="hud" style="display:none">
+    <div id="crosshair">+</div>
+    <div id="incantation"></div>
+    <div id="toast"></div>
+    <div id="prompt"></div>
+    <div id="quest"></div>
+    <div id="compass"></div>
+    <div id="side">
+      <div id="clock"></div>
+      <div id="points"></div>
+    </div>
+    <div id="bottom">
+      <div id="spell-name"></div>
+      <div id="hotbar"></div>
+    </div>
+    <div id="dialog"></div>
+    <div id="underwater"></div>
+  </div>
+
+  <!-- Pausa -->
+  <div id="pause" class="overlay" style="display:none">
+    <div class="panel small">
+      <h2>Pausado</h2>
+      <p>Clique para continuar</p>
+      <div class="controls">
+        <div><b>WASD</b> andar · <b>Shift</b> correr · <b>Espaço</b> pular / nadar</div>
+        <div><b>Mouse</b> olhar · <b>Clique</b> lançar feitiço · <b>1–8</b> / roda escolher feitiço</div>
+        <div><b>E</b> / botão direito conversar · <b>Q</b> trocar missão · <b>T</b> acelerar o tempo</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Taça das Casas -->
+  <div id="cup" class="overlay" style="display:none">
+    <div class="panel">
+      <div class="cup-icon">🏆</div>
+      <h1 id="cup-title"></h1>
+      <ul id="cup-list"></ul>
+      <p>Obrigado por jogar! Você pode continuar explorando Hogwarts.</p>
+      <button id="cup-close">Continuar explorando</button>
+    </div>
+  </div>
+
+  <!-- Tela inicial -->
+  <div id="start" class="overlay">
+    <div class="panel">
+      <h1>Hogwarts <span>Voxel</span></h1>
+      <div id="loading">Construindo o castelo, bloco por bloco...</div>
+      <div id="start-panel" style="display:none">
+        <p class="lead">O Chapéu Seletor aguarda. Escolha sua casa:</p>
+        <div class="houses">
+          <button class="house-btn" data-house="grifinoria" style="--c:#ae0001;--a:#d3a625">🦁<span>Grifinória</span></button>
+          <button class="house-btn" data-house="sonserina" style="--c:#1a472a;--a:#aaaaaa">🐍<span>Sonserina</span></button>
+          <button class="house-btn" data-house="corvinal" style="--c:#222f5b;--a:#946b2d">🦅<span>Corvinal</span></button>
+          <button class="house-btn" data-house="lufalufa" style="--c:#ecb939;--a:#372e29">🦡<span>Lufa-Lufa</span></button>
+        </div>
+        <p id="hat-line">&nbsp;</p>
+        <label class="name">Seu nome: <input id="name-input" maxlength="20" placeholder="Aluno" /></label>
+        <button id="start-btn" disabled>Entrar em Hogwarts</button>
+        <div class="controls">
+          <div><b>WASD</b> andar · <b>Shift</b> correr · <b>Espaço</b> pular / nadar</div>
+          <div><b>Mouse</b> olhar · <b>Clique</b> lançar feitiço · <b>1–8</b> / roda escolher feitiço</div>
+          <div><b>E</b> / botão direito conversar · <b>Q</b> trocar missão · <b>T</b> acelerar o tempo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
