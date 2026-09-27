@@ -263,19 +263,42 @@ document.addEventListener('pointerlockchange', () => {
   }
 });
 
+// Modo de reserva: quando a página não pode travar o mouse (ex.: dentro de um iframe
+// sem permissão), olha-se arrastando o mouse com o botão direito pressionado.
+let dragLook = false;
+const embedded = window.self !== window.top;
+function enableDragLook() {
+  if (dragLook || !embedded) return;
+  dragLook = true;
+  ui.toast('Segure o botão direito do mouse e arraste para olhar ao redor. Fale com E.', 6000);
+  lock();
+}
+document.addEventListener('pointerlockerror', enableDragLook);
+
 function lock() {
-  try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ }
+  if (dragLook) {
+    if (!inDialog() && !game.cupOpen) { player.enabled = true; $('pause').style.display = 'none'; }
+    return;
+  }
+  if (!canvas.requestPointerLock) { enableDragLook(); return; }
+  try {
+    const p = canvas.requestPointerLock();
+    if (p && p.catch) p.catch(enableDragLook);
+  } catch (e) { enableDragLook(); }
 }
 
 canvas.addEventListener('mousedown', (e) => {
   if (!game.started || inDialog()) return;
-  if (document.pointerLockElement !== canvas) { audio.init(); lock(); return; }
+  if (document.pointerLockElement !== canvas && !dragLook) { audio.init(); lock(); return; }
+  if (dragLook && !player.enabled) { audio.init(); lock(); return; }
   if (e.button === 0) { mouseDown = true; spells.castDown(); }
-  if (e.button === 2) tryInteract();
+  if (e.button === 2 && !dragLook) tryInteract();
 });
 window.addEventListener('mouseup', (e) => { if (e.button === 0 && mouseDown) { mouseDown = false; spells.castUp(); } });
 window.addEventListener('contextmenu', (e) => e.preventDefault());
-document.addEventListener('mousemove', (e) => player.onMouseMove(e));
+document.addEventListener('mousemove', (e) => {
+  if (document.pointerLockElement === canvas || (dragLook && (e.buttons & 2))) player.onMouseMove(e);
+});
 window.addEventListener('wheel', (e) => {
   if (!player.enabled) return;
   if (spells.held) spells.adjustHold(-Math.sign(e.deltaY) * 0.6);
@@ -340,6 +363,7 @@ function startDialog(npc) {
   npc.state = 'talk';
   player.keys = {};
   spells.castUp();
+  if (dragLook) player.enabled = false;
   document.exitPointerLock();
   audio.play('dialogOpen');
   showNode();

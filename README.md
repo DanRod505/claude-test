@@ -16,6 +16,14 @@ python3 -m http.server 8080
 
 Depois abra <http://localhost:8080>.
 
+Também é possível gerar uma versão em arquivo único (HTML com tudo embutido), que abre com duplo clique ou pode ser hospedada em qualquer lugar:
+
+```bash
+python3 scripts/build-single.py   # cria dist/hogwarts-voxel.html
+```
+
+Se o jogo estiver dentro de uma página que não permite travar o mouse, ele passa a um modo alternativo: segure o **botão direito** e arraste para olhar.
+
 ### Controles
 
 | Tecla | Ação |
