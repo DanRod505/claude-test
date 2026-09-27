@@ -39,6 +39,7 @@ export class Spells {
     if (this.held) this.release();
     this.current = i;
     this.game.ui.setSpell(i);
+    this.game.sfx.play('select', { index: i });
   }
 
   tipPos() {
@@ -58,11 +59,13 @@ export class Spells {
       case 'lumos':
         this.lumosOn = !this.lumosOn;
         if (!this.lumosOn) this.game.ui.incantation('Nox', 0x9999bb);
+        this.game.sfx.play(this.lumosOn ? 'lumos' : 'nox');
         this.particles.emit(this.tipPos(), { color: s.color, count: 14, speed: 2 });
         break;
       case 'stupefy':
       case 'incendio':
       case 'bombarda':
+        this.game.sfx.play(s.id);
         this.fireBolt(s, eye, dir);
         break;
       case 'accio': this.accio(eye, dir); break;
@@ -142,6 +145,7 @@ export class Spells {
 
   hitNpc(s, n) {
     this.particles.emit(n.pos.clone().add(new THREE.Vector3(0, 1.2, 0)), { color: s.color, count: 25, speed: 4 });
+    if (s.id !== 'bombarda') this.game.sfx.play(s.id === 'incendio' ? 'ignite' : 'zap', { pos: n.pos, vol: 0.7 });
     if (s.id === 'stupefy') n.stun = 3.5;
     this.game.onNpcHit(n, s.id);
     if (s.id === 'bombarda') this.explode(n.pos.clone().add(new THREE.Vector3(0, 1, 0)), 1.2);
@@ -151,6 +155,7 @@ export class Spells {
     if (e.type === 'brazier') {
       if (s.id === 'incendio' && !e.lit) {
         e.lit = true;
+        this.game.sfx.play('ignite', { pos: e.pos });
         this.lightFlash(e.pos.clone().add(new THREE.Vector3(0, 1.4, 0)), 0xff8a1a);
         this.particles.emit(e.pos.clone().add(new THREE.Vector3(0, 1.2, 0)), { color: 0xffa030, count: 40, speed: 4, gravity: -4 });
         this.game.onBrazierLit();
@@ -163,6 +168,7 @@ export class Spells {
       if (s.id === 'stupefy' || s.id === 'incendio' || s.id === 'bombarda') {
         e.stunned = 3;
         e.state = 'idle';
+        this.game.sfx.play('pixieStun', { pos: e.pos });
         this.particles.emit(e.pos, { color: s.color, count: 25, speed: 4 });
         this.game.onPixieStunned();
         if (s.id === 'bombarda') this.explode(pos, 1.5);
@@ -175,10 +181,12 @@ export class Spells {
   hitBlock(s, pos, prev) {
     if (s.id === 'stupefy') {
       this.particles.emit(prev, { color: s.color, count: 18, speed: 4 });
+      this.game.sfx.play('zap', { pos: prev, vol: 0.7 });
       this.lightFlash(prev, s.color, 3);
     } else if (s.id === 'incendio') {
       this.particles.emit(prev, { color: 0xff8a1a, count: 20, speed: 3, gravity: -3 });
       this.lightFlash(prev, 0xff8a1a, 5);
+      this.game.sfx.play('ignite', { pos: prev, vol: 0.6 });
       this.ignite(pos);
     } else if (s.id === 'bombarda') {
       this.explode(prev, 2.6);
@@ -203,6 +211,7 @@ export class Spells {
 
   explode(pos, radius) {
     this.lightFlash(pos, 0xff66cc, 9);
+    this.game.sfx.play('explosion', { pos, range: 80, vol: Math.min(1, radius / 2.6) });
     this.particles.emit(pos, { color: 0xffc0f0, count: 50, speed: 9, life: 0.6, size: 0.2 });
     this.particles.emit(pos, { color: 0x888888, count: 30, speed: 4, life: 1.4, size: 0.35, gravity: -1 });
     const r = Math.ceil(radius);
@@ -239,6 +248,7 @@ export class Spells {
       const b = this.burning[i];
       b.t -= dt; b.total += dt;
       const c = new THREE.Vector3(b.x + 0.5, b.y + 0.5, b.z + 0.5);
+      if (Math.random() < 0.05) this.game.sfx.play('crackle', { pos: c });
       if (Math.random() < 0.6) this.particles.emit(c, { color: Math.random() < 0.5 ? 0xff7a10 : 0xffcc33, count: 1, speed: 1.5, gravity: -5, life: 0.6, size: 0.2 });
       if (b.t <= 0) {
         const id = this.world.get(b.x, b.y, b.z);
@@ -259,11 +269,13 @@ export class Spells {
     this.particles.emit(this.tipPos(), { color: 0xffd86a, count: 15, speed: 3 });
     // o feitiço contorna obstáculos finos (como a borda de uma estante)
     if (p && p.t < wallT + 3) {
+      this.game.sfx.play('accio');
       p.entity.state = 'accio';
       p.entity.t = 0;
       this.particles.emit(p.entity.pos, { color: 0xffd86a, count: 30, speed: 3 });
     } else {
       this.game.toast('Nada para convocar aí.');
+      this.game.sfx.play('fizzle');
     }
   }
 
@@ -278,7 +290,8 @@ export class Spells {
       return p.addScaledVector(dir, -t).length() < 4;
     });
     this.particles.emit(center, { color: 0x7dffb0, count: 30, speed: 4 });
-    if (!list.length) { this.game.toast('Não há nada quebrado por aqui.'); return; }
+    if (!list.length) { this.game.toast('Não há nada quebrado por aqui.'); this.game.sfx.play('fizzle'); return; }
+    this.game.sfx.play('reparo');
     list.forEach((c, i) => this.repairs.push({ ...c, t: i * 0.012 + c.d * 0.05 }));
     this.game.toast(`Reparo! ${list.length} blocos restaurados.`);
   }
@@ -293,6 +306,7 @@ export class Spells {
       const inside = Math.abs(p.x - (r.x + 0.5)) < 0.8 && Math.abs(p.z - (r.z + 0.5)) < 0.8 && r.y >= Math.floor(p.y) - 0 && r.y <= p.y + 1.75;
       if (inside && BLOCKS[r.id].solid) { r.t = 0.3; continue; }
       this.world.set(r.x, r.y, r.z, r.id);
+      this.game.sfx.play('tick', { pos: new THREE.Vector3(r.x + 0.5, r.y + 0.5, r.z + 0.5) });
       this.particles.emit(new THREE.Vector3(r.x + 0.5, r.y + 0.5, r.z + 0.5), { color: 0x7dffb0, count: 3, speed: 1.5, life: 0.5 });
       this.repairs.splice(i, 1);
     }
@@ -315,15 +329,18 @@ export class Spells {
       this.holdDist = Math.max(2.5, Math.min(8, hit.t));
     } else {
       this.game.toast('Mire em um objeto ou bloco próximo.');
+      this.game.sfx.play('fizzle');
       return;
     }
     this.lastHeldPos = this.held.pos.clone();
+    this.game.sfx.play('leviosa');
+    this.game.sfx.startLoop('leviosa');
   }
 
   updateHeld(dt) {
     const e = this.held;
     if (!e) return;
-    if (e.dead) { this.held = null; return; }
+    if (e.dead) { this.held = null; this.game.sfx.stopLoop('leviosa'); return; }
     const target = this.player.eyePos().addScaledVector(this.player.forward(), this.holdDist);
     // evita atravessar paredes
     const next = e.pos.clone().lerp(target, Math.min(1, dt * 8));
@@ -345,6 +362,7 @@ export class Spells {
   release() {
     const e = this.held;
     this.held = null;
+    this.game.sfx.stopLoop('leviosa');
     if (!e || e.dead) return;
     e.state = 'falling';
     e.vel.clampLength(0, 14);
@@ -353,6 +371,7 @@ export class Spells {
   patronum(eye, dir) {
     const start = this.player.pos.clone().addScaledVector(new THREE.Vector3(dir.x, 0, dir.z).normalize(), 1.5);
     this.entities.spawnPatronus(start, dir);
+    this.game.sfx.play('patronum');
     this.particles.emit(this.tipPos(), { color: 0xcfe8ff, count: 60, speed: 6, life: 1.2 });
     this.lightFlash(this.tipPos(), 0xcfe8ff, 8);
   }

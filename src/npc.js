@@ -4,16 +4,16 @@ import { buildCharacter, makeLabel } from './models.js';
 
 export const NPC_DEFS = {
   dumbledore: {
-    name: 'Alvo Dumbledore', short: 'Dumbledore', robe: 0x5b2a86, trim: 0xd4af37, hair: 0xe8e8e8, hairStyle: 'long',
+    name: 'Alvo Dumbledore', short: 'Dumbledore', voice: { pitch: 150, wave: 'triangle' }, robe: 0x5b2a86, trim: 0xd4af37, hair: 0xe8e8e8, hairStyle: 'long',
     beard: 0xeeeeee, beardLength: 0.75, hat: 0x5b2a86, glasses: 0xc0a040, eyes: 0x3d6fb0, wand: true, wander: 3,
   },
-  hermione: { name: 'Hermione Granger', short: 'Hermione', robe: 0x1b1b22, trim: 0xae0001, hair: 0x7a4a26, hairStyle: 'bushy', eyes: 0x5a3a20, wander: 4, scale: 0.92 },
-  ron: { name: 'Rony Weasley', short: 'Rony', robe: 0x1b1b22, trim: 0xae0001, hair: 0xd2561c, eyes: 0x3d6fb0, wander: 4, scale: 0.97 },
-  mcgonagall: { name: 'Minerva McGonagall', short: 'McGonagall', robe: 0x1d5b3a, trim: 0x0f3a24, hair: 0x4a4a4a, hairStyle: 'bun', hat: 0x1d5b3a, glasses: 0x333333, wand: true, wander: 3 },
-  snape: { name: 'Severo Snape', short: 'Snape', robe: 0x0e0e12, pants: 0x0e0e12, hair: 0x101010, hairStyle: 'long', skin: 0xe6d6c0, eyes: 0x111111, wand: true, wander: 3 },
-  hagrid: { name: 'Rúbeo Hagrid', short: 'Hagrid', robe: 0x5a3b22, pants: 0x3a2a1a, hair: 0x2a1a10, hairStyle: 'bushy', beard: 0x2a1a10, beardLength: 0.5, eyes: 0x111111, scale: 1.55, wander: 4 },
-  neville: { name: 'Neville Longbottom', short: 'Neville', robe: 0x1b1b22, trim: 0xae0001, hair: 0x5a3a20, eyes: 0x5a3a20, wander: 3, scale: 0.95 },
-  nick: { name: 'Nick Quase Sem Cabeça', short: 'Nick', robe: 0xb8c8d8, pants: 0xb8c8d8, skin: 0xd8e4f0, hair: 0xc8d4e0, ruff: true, ghost: true, headTilt: 0.7, wander: 10, float: true },
+  hermione: { name: 'Hermione Granger', short: 'Hermione', voice: { pitch: 340 }, robe: 0x1b1b22, trim: 0xae0001, hair: 0x7a4a26, hairStyle: 'bushy', eyes: 0x5a3a20, wander: 4, scale: 0.92 },
+  ron: { name: 'Rony Weasley', short: 'Rony', voice: { pitch: 270 }, robe: 0x1b1b22, trim: 0xae0001, hair: 0xd2561c, eyes: 0x3d6fb0, wander: 4, scale: 0.97 },
+  mcgonagall: { name: 'Minerva McGonagall', short: 'McGonagall', voice: { pitch: 290, wave: 'triangle' }, robe: 0x1d5b3a, trim: 0x0f3a24, hair: 0x4a4a4a, hairStyle: 'bun', hat: 0x1d5b3a, glasses: 0x333333, wand: true, wander: 3 },
+  snape: { name: 'Severo Snape', short: 'Snape', voice: { pitch: 120, wave: 'sawtooth' }, robe: 0x0e0e12, pants: 0x0e0e12, hair: 0x101010, hairStyle: 'long', skin: 0xe6d6c0, eyes: 0x111111, wand: true, wander: 3 },
+  hagrid: { name: 'Rúbeo Hagrid', short: 'Hagrid', voice: { pitch: 95, wave: 'sawtooth' }, robe: 0x5a3b22, pants: 0x3a2a1a, hair: 0x2a1a10, hairStyle: 'bushy', beard: 0x2a1a10, beardLength: 0.5, eyes: 0x111111, scale: 1.55, wander: 4 },
+  neville: { name: 'Neville Longbottom', short: 'Neville', voice: { pitch: 310 }, robe: 0x1b1b22, trim: 0xae0001, hair: 0x5a3a20, eyes: 0x5a3a20, wander: 3, scale: 0.95 },
+  nick: { name: 'Nick Quase Sem Cabeça', short: 'Nick', voice: { pitch: 420, wave: 'sine', vib: 25 }, robe: 0xb8c8d8, pants: 0xb8c8d8, skin: 0xd8e4f0, hair: 0xc8d4e0, ruff: true, ghost: true, headTilt: 0.7, wander: 10, float: true },
 };
 
 export class NPC {

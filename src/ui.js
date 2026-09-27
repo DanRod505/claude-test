@@ -93,7 +93,7 @@ export class UI {
   }
 
   // ---------- diálogo ----------
-  openDialog(speaker, text, options, onPick) {
+  openDialog(speaker, text, options, onPick, onType) {
     this.dialog.style.display = 'block';
     this.dialog.innerHTML = `<div class="d-speaker">${speaker}</div><div class="d-text"></div><div class="d-options"></div>`;
     const textEl = this.dialog.querySelector('.d-text');
@@ -117,6 +117,7 @@ export class UI {
     this.typer = setInterval(() => {
       i += 2;
       textEl.textContent = text.slice(0, i);
+      if (onType && i % 6 === 0 && /\S/.test(text[i] || '')) onType();
       if (i >= text.length) finish();
     }, 16);
   }

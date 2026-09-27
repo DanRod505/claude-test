@@ -11,6 +11,8 @@ import { Spells, SPELLS } from './spells.js';
 import { buildWand, buildHand } from './models.js';
 import { UI, HOUSES } from './ui.js';
 import { DIALOGUES, QUESTS, QUEST_ORDER } from './dialogues.js';
+import { audio } from './audio.js';
+import { BLOCKS, B } from './blocks.js';
 
 const params = new URLSearchParams(location.search);
 const $ = (id) => document.getElementById(id);
@@ -92,6 +94,7 @@ const game = {
   inv: new Set(),
   cardsTotal: 0,
   ui,
+  sfx: audio,
   shakeT: 0,
   dialog: null,
   time: 0.32, // hora do dia (0..1)
@@ -100,13 +103,13 @@ const game = {
   startQuest(id, silent) {
     if (this.quests[id]) return;
     this.quests[id] = 'active';
-    if (!silent) ui.toast(`Nova missão: ${QUESTS[id].title}`);
+    if (!silent) { ui.toast(`Nova missão: ${QUESTS[id].title}`); audio.play('questStart'); }
     this.trackQuest = id;
   },
   completeQuest(id, pts) {
     this.quests[id] = 'done';
     if (pts) this.addPoints(pts, QUESTS[id].title);
-    if (id !== 'intro' && id !== 'cup') ui.toast(`Missão concluída: ${QUESTS[id].title}`);
+    if (id !== 'intro' && id !== 'cup') { ui.toast(`Missão concluída: ${QUESTS[id].title}`); audio.play('questDone'); }
     if (this.trackQuest === id) this.trackQuest = null;
   },
   addPoints(n, reason) {
@@ -114,11 +117,14 @@ const game = {
     const h = HOUSES[this.house].name;
     ui.toast(n >= 0 ? `+${n} pontos para a ${h}! (${reason})` : `${n} pontos para a ${h}. (${reason})`);
     ui.renderPoints(this.points, this.house);
+    audio.play(n >= 0 ? 'pointsUp' : 'pointsDown');
   },
   pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
   toast(t) { ui.toast(t); },
   shake(s) { this.shakeT = Math.max(this.shakeT, s); },
   collect(e) {
+    audio.play(e.type === 'card' ? 'card' : 'collect');
+    if (e.type === 'trevor') audio.play('croak', { vol: 0.8 });
     if (e.type === 'book') { this.inv.add('book'); ui.toast('Você pegou o livro da Hermione!'); if (!this.quests.book) this.startQuest('book'); }
     if (e.type === 'trevor') { this.inv.add('trevor'); ui.toast('Você pegou o Trevo! Croac.'); if (!this.quests.trevor) this.startQuest('trevor'); }
     if (e.type === 'card') {
@@ -134,6 +140,7 @@ const game = {
   },
   onBrazierLit() {
     this.flags.braziersLit++;
+    audio.play('questStart', { vol: 0.5 });
     ui.toast(`Braseiro aceso! (${this.flags.braziersLit}/3)`);
   },
   onPixieStunned() {
@@ -155,9 +162,11 @@ const game = {
       nick: 'Atravessou direto, meu caro. Vantagens de ser fantasma.',
     };
     ui.toast(`${npc.name}: "${lines[npc.id]}"`);
+    audio.play('ouch', { pos: npc.pos, pitch: npc.def.voice?.pitch });
     if (['snape', 'mcgonagall', 'dumbledore'].includes(npc.id)) {
       this.points[this.house] -= 10;
       ui.renderPoints(this.points, this.house);
+      audio.play('pointsDown');
     }
     if (npc.id === 'nick' || npc.id === 'hagrid') npc.stun = 0;
   },
@@ -168,6 +177,7 @@ const game = {
     $('cup-title').textContent = winner === this.house ? `A ${h.name} vence a Taça das Casas!` : `A ${h.name} vence a Taça... por pouco!`;
     $('cup-list').innerHTML = pts.map(([k, p]) => `<li style="border-color:${HOUSES[k].color}">${HOUSES[k].crest} ${HOUSES[k].name}: <b>${p}</b></li>`).join('');
     $('cup').style.display = 'flex';
+    audio.play('cup');
     document.exitPointerLock();
     this.cupOpen = true;
   },
@@ -259,7 +269,7 @@ function lock() {
 
 canvas.addEventListener('mousedown', (e) => {
   if (!game.started || inDialog()) return;
-  if (document.pointerLockElement !== canvas) { lock(); return; }
+  if (document.pointerLockElement !== canvas) { audio.init(); lock(); return; }
   if (e.button === 0) { mouseDown = true; spells.castDown(); }
   if (e.button === 2) tryInteract();
 });
@@ -289,6 +299,8 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyE') tryInteract();
   if (e.code === 'KeyQ') cycleQuest();
+  if (e.code === 'KeyM') ui.toast(audio.toggleMute() ? 'Som desligado (M)' : 'Som ligado (M)');
+  if (e.code === 'KeyN') ui.toast(audio.toggleMusic() ? 'Música ligada (N)' : 'Música desligada (N)');
 });
 window.addEventListener('keyup', (e) => { player.keys[e.code] = false; });
 
@@ -329,6 +341,7 @@ function startDialog(npc) {
   player.keys = {};
   spells.castUp();
   document.exitPointerLock();
+  audio.play('dialogOpen');
   showNode();
 }
 
@@ -336,13 +349,16 @@ function showNode() {
   const d = game.dialog;
   const node = d.tree.nodes[d.node];
   d.options = node.options;
-  ui.openDialog(d.npc.name, fmt(node.text), node.options.map((o) => ({ text: fmt(o.text) })), chooseOption);
+  const voice = d.npc.def.voice || {};
+  ui.openDialog(d.npc.name, fmt(node.text), node.options.map((o) => ({ text: fmt(o.text) })), chooseOption,
+    () => audio.play('blip', voice));
 }
 
 function chooseOption(i) {
   const d = game.dialog;
   if (!d || !d.options[i]) return;
   const o = d.options[i];
+  audio.play('choose');
   if (o.do) o.do(game);
   if (o.end || !o.next) endDialog(true);
   else { d.node = o.next; showNode(); }
@@ -432,12 +448,43 @@ function updateSky(dt) {
   skyGroup.position.copy(camera.position);
   sunMesh.position.copy(sunDir).multiplyScalar(280); sunMesh.lookAt(camera.position);
   moonMesh.position.copy(sunDir).multiplyScalar(-280); moonMesh.lookAt(camera.position);
+  game.dayAmt = dayAmt;
   stars.material.opacity = 1 - dayAmt;
   stars.visible = dayAmt < 0.95;
   clouds.material.color.setScalar(0.35 + 0.65 * dayAmt);
   clouds.position.x = (clouds.position.x + dt * 0.8) % 200;
   const hours = Math.floor(game.time * 24), mins = Math.floor((game.time * 24 * 60) % 60);
   $('clock').textContent = `${dayAmt > 0.5 ? '☀' : '☾'} ${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+}
+
+// ---------- áudio ----------
+const SURFACE = {
+  [B.GRASS]: 'grass', [B.DIRT]: 'grass', [B.LEAVES]: 'grass', [B.DARK_LEAVES]: 'grass', [B.THATCH]: 'grass',
+  [B.RED]: 'grass', [B.GREEN]: 'grass', [B.BLUE]: 'grass', [B.YELLOW]: 'grass', [B.CARPET]: 'grass',
+  [B.SAND]: 'sand', [B.PATH]: 'sand',
+  [B.PLANK]: 'wood', [B.DARK_WOOD]: 'wood', [B.BOOKSHELF]: 'wood', [B.LOG]: 'wood', [B.PUMPKIN]: 'wood',
+};
+player.onEvent = (name, data) => {
+  if (name === 'step') {
+    const id = world.get(Math.floor(player.pos.x), Math.floor(player.pos.y - 0.1), Math.floor(player.pos.z));
+    audio.play('step', { surface: player.inWater ? 'water' : SURFACE[id] || 'stone', vol: data?.sprint ? 1 : 0.75 });
+  } else if (name === 'land') audio.play('land', { vol: Math.min(1, data.speed / 18) });
+  else audio.play(name);
+};
+
+let audioCheckT = 0, outdoors = true;
+function updateAudio(dt) {
+  audio.setListener(camera.position, player.yaw);
+  audioCheckT -= dt;
+  if (audioCheckT <= 0) {
+    audioCheckT = 0.5;
+    // ao ar livre = nada sólido acima da cabeça
+    outdoors = true;
+    const x = Math.floor(player.pos.x), z = Math.floor(player.pos.z);
+    for (let y = Math.floor(player.pos.y + 2); y < world.sy; y++) if (BLOCKS[world.get(x, y, z)].solid) { outdoors = false; break; }
+  }
+  const underwater = world.isWater(camera.position.x, camera.position.y, camera.position.z);
+  audio.updateAmbience(dt, { outdoors, night: (game.dayAmt ?? 1) < 0.3, underwater });
 }
 
 // ---------- loop ----------
@@ -458,6 +505,7 @@ function tick(dt) {
     spells.update(dt, elapsed);
     world.update(4);
     updateSky(dt);
+    updateAudio(dt);
     updateProps(elapsed);
     if (game.shakeT > 0) {
       game.shakeT -= dt;
@@ -511,11 +559,12 @@ function startGame() {
   ui.renderPoints(game.points, game.house);
   ui.setSpell(0);
   game.started = true;
+  audio.init();
   ui.toast(`Bem-vindo(a), ${game.name}! Vá ao Salão Principal falar com Dumbledore.`, 6000);
   lock();
 }
 $('start-btn').onclick = startGame;
-$('pause').onclick = () => lock();
+$('pause').onclick = () => { audio.init(); lock(); };
 
 // Carrega o mundo depois do primeiro paint da tela de carregamento
 requestAnimationFrame(() => setTimeout(() => {

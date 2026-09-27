@@ -30,6 +30,8 @@ Depois abra <http://localhost:8080>.
 | **1–3** (no diálogo) | escolher uma resposta |
 | **Q** | trocar a missão acompanhada |
 | **T** (segurar) | acelerar o tempo (ciclo de dia e noite) |
+| **M** | ligar/desligar todo o som |
+| **N** | ligar/desligar a música |
 | **Esc** | pausar |
 
 ### Feitiços
@@ -44,6 +46,18 @@ Depois abra <http://localhost:8080>.
 | 6 | **Bombarda** | explode blocos |
 | 7 | **Reparo** | reconstrói, bloco por bloco, o que foi destruído ou queimado |
 | 8 | **Expecto Patronum** | conjura um cervo prateado |
+
+### Som
+
+Todos os sons são sintetizados em tempo real com a Web Audio API, sem nenhum arquivo de áudio:
+
+- um efeito próprio para cada feitiço (e um "fiasco" quando não há alvo), impactos, fogo crepitando, explosões e blocos sendo reconstruídos;
+- passos que mudam conforme o chão (grama, pedra, madeira, areia, água), pulos, quedas e mergulhos;
+- vozes em "bipes" com o timbre de cada personagem, risadinhas dos diabretes e o coaxar do Trevo;
+- sons de missão, pontos, figurinhas e uma fanfarra para a Taça das Casas;
+- vento ao ar livre, grilos à noite, som abafado debaixo d'água, eco leve de castelo e uma música original de caixinha de música.
+
+Os sons vêm do lugar certo no espaço (esquerda/direita) e ficam mais baixos com a distância.
 
 ### Lugares
 
@@ -78,6 +92,7 @@ src/models.js       modelos voxel (personagens, criaturas, itens, varinha, patro
 src/entities.js     itens de missão, diabretes, blocos levitando, patrono
 src/spells.js       feitiços, projéteis e efeitos
 src/particles.js    partículas voxel instanciadas
+src/audio.js        efeitos sonoros, ambiente e música procedurais (Web Audio)
 src/dialogues.js    árvores de diálogo e definições das missões
 src/ui.js           HUD, barra de feitiços e caixa de diálogo
 ```

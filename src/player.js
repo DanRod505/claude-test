@@ -21,6 +21,8 @@ export class Player {
     this.bob = 0;
     this.enabled = false;
     this.knock = new THREE.Vector3();
+    this.onEvent = null; // callback de sons: (nome, dados)
+    this.stepDist = 0;
   }
 
   onMouseMove(e) {
@@ -51,6 +53,8 @@ export class Player {
   }
 
   update(dt, obstacles = []) {
+    const emit = (n, d) => this.onEvent && this.onEvent(n, d);
+    const wasWater = this.inWater, wasGround = this.onGround, fallSpeed = -this.vel.y;
     const k = this.keys;
     const moving = this.enabled;
     const fwd = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
@@ -65,6 +69,7 @@ export class Player {
     if (wish.lengthSq() > 0) wish.normalize();
 
     this.inWater = this.world.isWater(this.pos.x, this.pos.y + 0.5, this.pos.z);
+    if (this.inWater && !wasWater && fallSpeed > 2) emit('splash');
     const sprint = moving && (k.ShiftLeft || k.ShiftRight);
     let speed = sprint ? 8.2 : 5.0;
     if (this.inWater) speed *= 0.55;
@@ -81,7 +86,7 @@ export class Player {
       if (moving && k.Space) this.vel.y = Math.min(this.vel.y + 30 * dt, 4.2);
     } else {
       this.vel.y -= GRAVITY * dt;
-      if (moving && k.Space && this.onGround) { this.vel.y = 9.2; this.onGround = false; }
+      if (moving && k.Space && this.onGround) { this.vel.y = 9.2; this.onGround = false; emit('jump'); }
     }
     this.vel.y = Math.max(this.vel.y, -40);
 
@@ -110,7 +115,10 @@ export class Player {
     this.onGround = false;
     if (!this.collides(p.x, ny, p.z)) p.y = ny;
     else {
-      if (this.vel.y < 0) { p.y = Math.floor(ny) + 1; this.onGround = true; }
+      if (this.vel.y < 0) {
+        p.y = Math.floor(ny) + 1; this.onGround = true;
+        if (!wasGround && fallSpeed > 7) emit('land', { speed: fallSpeed });
+      }
       else p.y = Math.floor(ny + HEIGHT) - HEIGHT - 0.001;
       this.vel.y = 0;
     }
@@ -135,6 +143,11 @@ export class Player {
     // câmera
     this.eyeOffset += (0 - this.eyeOffset) * Math.min(1, 12 * dt);
     const hs = Math.hypot(this.vel.x, this.vel.z);
+    if ((this.onGround || this.inWater) && hs > 1) {
+      this.stepDist += hs * dt;
+      const stride = this.inWater ? 2.6 : sprint ? 2.4 : 1.9;
+      if (this.stepDist > stride) { this.stepDist = 0; emit('step', { sprint }); }
+    }
     if (this.onGround && hs > 0.5) this.bob += dt * hs * 1.6;
     const bobY = Math.sin(this.bob * 2) * 0.05 * Math.min(1, hs / 5);
     this.camera.position.set(p.x, p.y + EYE + this.eyeOffset + bobY, p.z);

@@ -99,6 +99,7 @@ export class Entities {
 
   update(dt, ctx) {
     const { game, player, time } = ctx;
+    this.sfx = game.sfx;
     const w = this.world;
     for (const e of this.list) {
       if (e.dead) continue;
@@ -140,6 +141,7 @@ export class Entities {
           e.hop = (e.hop ?? 2) - dt;
           if (e.hop < 0) { e.hop = 2 + Math.random() * 3; e.jump = 0.35; e.obj.rotation.y = Math.random() * 6.28; }
           e.jump = Math.max(0, (e.jump ?? 0) - dt);
+          if (Math.random() < dt * 0.3) this.sfx.play('croak', { pos: e.pos, range: 30 });
           e.obj.position.set(e.pos.x, e.pos.y + Math.sin((e.jump / 0.35) * Math.PI) * 0.25, e.pos.z);
           if (e.pos.distanceTo(player.pos) < 1.2) { game.collect(e); this.remove(e); }
           break;
@@ -176,6 +178,7 @@ export class Entities {
               let cx = Math.floor(next.x), cy = Math.floor(next.y - 0.5) + 1, cz = Math.floor(next.z);
               while (w.get(cx, cy, cz) !== 0 && cy < w.sy - 1) cy++;
               w.set(cx, cy, cz, e.blockId);
+              this.sfx.play('place', { pos: e.pos });
               this.particles.emit(new THREE.Vector3(cx + 0.5, cy + 0.2, cz + 0.5), { color: 0xcccccc, count: 8, speed: 2 });
               this.remove(e);
               break;
@@ -239,6 +242,7 @@ export class Entities {
       return;
     }
     if (e.state === 'falling') e.state = 'idle';
+    if (Math.random() < dt * 0.15) this.sfx?.play('giggle', { pos: e.pos, range: 25 });
     const a = this.pixieArea;
     if (e.pos.distanceTo(e.goal) < 0.5 || Math.random() < dt * 0.5) {
       // às vezes voa em direção ao jogador para provocar
