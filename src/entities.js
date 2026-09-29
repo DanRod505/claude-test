@@ -1,6 +1,6 @@
 // Entidades do mundo: itens de missão, criaturas, blocos levitando e patrono.
 import * as THREE from 'three';
-import { buildBook, buildToad, buildFeather, buildBrazier, buildPixie, buildCard, buildPatronus } from './models.js';
+import { buildBook, buildToad, buildFeather, buildBrazier, buildPixie, buildCard, buildPatronus, buildSnitch } from './models.js';
 import { makeBlockGeometry } from './world.js';
 
 let nextId = 1;
@@ -58,6 +58,18 @@ export class Entities {
     }
     this.pixieArea = spots.pixieArea;
     for (let i = 0; i < 7; i++) this.spawnPixie();
+    this.snitchArea = spots.snitchArea;
+    this.spawnSnitch();
+  }
+
+  randomSnitchPoint(out = new THREE.Vector3()) {
+    const a = this.snitchArea, t = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random());
+    return out.set(a.cx + Math.cos(t) * a.rx * r, a.y0 + Math.random() * (a.y1 - a.y0), a.cz + Math.sin(t) * a.rz * r);
+  }
+
+  spawnSnitch() {
+    const p = this.randomSnitchPoint();
+    return this.add(new Entity('snitch', buildSnitch(), p, { radius: 0.3, extra: { goal: this.randomSnitchPoint(), dart: 0 } }));
   }
 
   spawnPixie() {
@@ -168,6 +180,7 @@ export class Entities {
           break;
         }
         case 'pixie': this.updatePixie(e, dt, time, player); break;
+        case 'snitch': this.updateSnitch(e, dt, time, player, game); break;
         case 'block': {
           if (e.state === 'falling') {
             e.vel.y -= 22 * dt;
@@ -217,6 +230,42 @@ export class Entities {
       e.state = 'idle';
     } else e.pos.copy(next);
     e.obj.position.copy(e.pos);
+  }
+
+  // O Pomo voa de forma errática pelo campo e foge de quem chega perto
+  updateSnitch(e, dt, time, player, game) {
+    const a = this.snitchArea;
+    const body = player.pos.clone().add(new THREE.Vector3(0, 0.9, 0));
+    const toMe = e.pos.clone().sub(body);
+    const d = toMe.length();
+    if (d < 1.3) {
+      this.particles.emit(e.pos, { color: 0xffd84a, count: 40, speed: 5 });
+      game.onSnitch();
+      this.remove(e);
+      setTimeout(() => this.spawnSnitch(), 30000);
+      return;
+    }
+    e.dart -= dt;
+    if (e.dart <= 0 || e.pos.distanceTo(e.goal) < 1) {
+      e.dart = 0.5 + Math.random() * 1.2;
+      this.randomSnitchPoint(e.goal);
+    }
+    let speed = 7;
+    const dir = e.goal.clone().sub(e.pos).normalize();
+    if (d < 7) { dir.lerp(toMe.normalize(), 0.6).normalize(); speed = 10.5; } // foge
+    e.vel.lerp(dir.multiplyScalar(speed), Math.min(1, dt * 4));
+    e.vel.y += Math.sin(time * 9 + e.id) * 0.4;
+    const next = e.pos.clone().addScaledVector(e.vel, dt);
+    // não sai muito da área do campo nem entra em blocos
+    const ex = (next.x - a.cx) / (a.rx + 6), ez = (next.z - a.cz) / (a.rz + 6);
+    if (ex * ex + ez * ez > 1 || next.y < a.y0 - 1 || next.y > a.y1 + 6 || this.world.isSolid(next.x, next.y, next.z)) {
+      this.randomSnitchPoint(e.goal); e.vel.multiplyScalar(-0.3);
+    } else e.pos.copy(next);
+    e.obj.position.copy(e.pos);
+    e.obj.rotation.y = Math.atan2(e.vel.x, e.vel.z);
+    this.flapWings(e, time);
+    if (Math.random() < 0.3) this.particles.emit(e.pos, { color: 0xffe066, count: 1, speed: 0.3, life: 0.4, size: 0.06 });
+    if (Math.random() < dt * 0.8) this.sfx?.play('snitch', { pos: e.pos, range: 30 });
   }
 
   flapWings(e, time) {

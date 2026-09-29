@@ -38,9 +38,16 @@ Se o jogo estiver dentro de uma página que não permite travar o mouse, ele pas
 | **1–3** (no diálogo) | escolher uma resposta |
 | **Q** | trocar a missão acompanhada |
 | **T** (segurar) | acelerar o tempo (ciclo de dia e noite) |
+| **F** | montar/desmontar a vassoura |
+| **Espaço / C** (na vassoura) | subir / descer |
+| **Shift** (na vassoura) | turbo |
 | **M** | ligar/desligar todo o som |
 | **N** | ligar/desligar a música |
 | **Esc** | pausar |
+
+### Vassoura
+
+Aperte **F** para montar na vassoura em qualquer lugar. Você voa para onde está olhando (**W**), com **Espaço** para subir, **C** para descer e **Shift** para o turbo. A câmera inclina nas curvas e o vento aumenta com a velocidade. O **Pomo de Ouro** voa solto pelo campo de Quadribol e foge quando você chega perto: pegá-lo vale 150 pontos (e ele volta depois de um tempo).
 
 ### Feitiços
 

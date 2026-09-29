@@ -375,12 +375,17 @@ export const DIALOGUES = {
         options: [
           { text: 'Por que te chamam de "Quase Sem Cabeça"?', next: 'head' },
           { text: 'Alguma dica sobre o castelo?', next: 'tip' },
+          { text: 'Dá para voar aqui?', next: 'broom' },
           bye,
         ],
       },
       head: {
         text: 'Quarenta e cinco golpes com um machado cego, e ainda assim ela ficou presa por um fiapo de pele! Por isso não me deixam entrar no Clube dos Caçadores Sem Cabeça. Um absurdo!',
         options: [{ text: 'Que injustiça!', next: 'intro' }],
+      },
+      broom: {
+        text: 'Mas é claro! Aperte F para montar na sua vassoura. E se for até o campo de Quadribol, procure um brilho dourado: o Pomo de Ouro anda solto por lá. Pegá-lo vale muitos pontos!',
+        options: [{ text: 'Vou tentar!', next: 'intro' }],
       },
       tip: {
         text: (g) => `Dizem que há ${g.cardsTotal} figurinhas de Sapo de Chocolate escondidas: no alto das torres, no campo de Quadribol, nas estufas, sob a mesa dos professores... e até na Floresta Proibida! Você já achou ${g.flags.cards}.`,

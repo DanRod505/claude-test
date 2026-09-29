@@ -8,7 +8,7 @@ import { Particles } from './particles.js';
 import { NPC } from './npc.js';
 import { Entities } from './entities.js';
 import { Spells, SPELLS } from './spells.js';
-import { buildWand, buildHand } from './models.js';
+import { buildWand, buildHand, buildBroom } from './models.js';
 import { UI, HOUSES } from './ui.js';
 import { DIALOGUES, QUESTS, QUEST_ORDER } from './dialogues.js';
 import { audio } from './audio.js';
@@ -78,6 +78,11 @@ const player = new Player(world, camera);
 const handRig = new THREE.Group();
 const wand = buildWand();
 handRig.add(wand);
+// vassoura (visível sob o jogador quando está voando)
+const broom = buildBroom();
+broom.visible = false;
+scene.add(broom);
+
 const hand = buildHand(0x1b1b22);
 hand.position.set(0, -0.02, 0.04);
 handRig.add(hand);
@@ -142,6 +147,13 @@ const game = {
     this.flags.braziersLit++;
     audio.play('questStart', { vol: 0.5 });
     ui.toast(`Braseiro aceso! (${this.flags.braziersLit}/3)`);
+  },
+  onSnitch() {
+    this.flags.snitches = (this.flags.snitches || 0) + 1;
+    audio.play('card');
+    audio.play('questDone');
+    ui.toast(this.flags.snitches === 1 ? 'Você pegou o Pomo de Ouro! Digno de um apanhador!' : 'Pomo de Ouro capturado de novo!');
+    this.addPoints(this.flags.snitches === 1 ? 150 : 20, 'Pomo de Ouro');
   },
   onPixieStunned() {
     this.flags.pixiesStunned++;
@@ -322,6 +334,7 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyE') tryInteract();
   if (e.code === 'KeyQ') cycleQuest();
+  if (e.code === 'KeyF') toggleBroom();
   if (e.code === 'KeyM') ui.toast(audio.toggleMute() ? 'Som desligado (M)' : 'Som ligado (M)');
   if (e.code === 'KeyN') ui.toast(audio.toggleMusic() ? 'Música ligada (N)' : 'Música desligada (N)');
 });
@@ -481,6 +494,33 @@ function updateSky(dt) {
   $('clock').textContent = `${dayAmt > 0.5 ? '☀' : '☾'} ${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
 
+// ---------- vassoura ----------
+let broomHintShown = false;
+function toggleBroom() {
+  player.setFlying(!player.flying);
+  audio.play(player.flying ? 'broomUp' : 'broomDown');
+  if (player.flying && !broomHintShown) {
+    broomHintShown = true;
+    ui.toast('Nimbus 2000! W voa para onde você olha · Espaço sobe · C desce · Shift turbo · F desmonta', 7000);
+    ui.toast('Dizem que o Pomo de Ouro está solto no campo de Quadribol...', 7000);
+  }
+}
+
+const broomTmp = new THREE.Vector3();
+function updateBroom(dt) {
+  broom.visible = player.flying;
+  if (!player.flying) return;
+  broom.position.set(player.pos.x, player.pos.y + 0.72 + Math.sin(player.bob * 2.2) * 0.08, player.pos.z);
+  broom.rotation.set(player.pitch * 0.35, player.yaw, player.roll * 0.8, 'YXZ');
+  // rastro de faíscas no turbo
+  if (player.boosting) {
+    broomTmp.set(0, 0, 1.4).applyEuler(broom.rotation).add(broom.position);
+    particles.emit(broomTmp, { color: 0xffe9a0, count: 2, speed: 1, life: 0.5, size: 0.08 });
+  }
+  const alt = Math.round(player.pos.y - world.surfaceY(player.pos.x, player.pos.z, player.pos.y));
+  $('flight').textContent = `🧹 ${Math.round(player.speed)} m/s · altura ${Math.max(0, alt)} m${player.boosting ? ' · TURBO' : ''}`;
+}
+
 // ---------- áudio ----------
 const SURFACE = {
   [B.GRASS]: 'grass', [B.DIRT]: 'grass', [B.LEAVES]: 'grass', [B.DARK_LEAVES]: 'grass', [B.THATCH]: 'grass',
@@ -530,6 +570,9 @@ function tick(dt) {
     world.update(4);
     updateSky(dt);
     updateAudio(dt);
+    updateBroom(dt);
+    audio.updateFlight(player.flying ? player.speed : 0);
+    $('flight').hidden = !player.flying;
     updateProps(elapsed);
     if (game.shakeT > 0) {
       game.shakeT -= dt;

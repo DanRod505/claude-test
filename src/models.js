@@ -248,3 +248,28 @@ export function buildPatronus() {
   g.userData.legs = legs;
   return g;
 }
+
+// Vassoura (aponta para -z, como a câmera)
+export function buildBroom() {
+  const g = new THREE.Group();
+  g.add(box(0.08, 0.08, 2.1, 0x6b4526, 0, 0, -0.25));
+  g.add(box(0.1, 0.1, 0.06, 0xd4af37, 0, 0, 0.72));
+  g.add(box(0.1, 0.1, 0.06, 0xd4af37, 0, 0, -1.25));
+  const bristle = [[0, 0, 0.3], [0.1, 0.06, 0.26], [-0.1, 0.06, 0.26], [0.08, -0.08, 0.26], [-0.08, -0.08, 0.26]];
+  for (const [x, y, w] of bristle) g.add(box(w, w, 0.75, 0xc9a55a, x, y, 1.1));
+  g.add(box(0.36, 0.36, 0.5, 0xb38e45, 0, 0, 1.15));
+  return g;
+}
+
+// Pomo de Ouro
+export function buildSnitch() {
+  const g = new THREE.Group();
+  g.add(box(0.22, 0.22, 0.22, 0xf2c230, 0, 0, 0, { emissive: 0x6a4a00 }));
+  const wings = [];
+  for (const sx of [-1, 1]) {
+    const w = box(0.4, 0.02, 0.16, 0xf4f0e0, sx * 0.3, 0.05, 0, { opacity: 0.8 });
+    g.add(w); wings.push(w);
+  }
+  g.userData.wings = wings;
+  return g;
+}

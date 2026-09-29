@@ -23,6 +23,9 @@ export class Player {
     this.knock = new THREE.Vector3();
     this.onEvent = null; // callback de sons: (nome, dados)
     this.stepDist = 0;
+    this.flying = false; // montado na vassoura
+    this.roll = 0;
+    this.lastYaw = 0;
   }
 
   onMouseMove(e) {
@@ -55,6 +58,7 @@ export class Player {
   update(dt, obstacles = []) {
     const emit = (n, d) => this.onEvent && this.onEvent(n, d);
     const wasWater = this.inWater, wasGround = this.onGround, fallSpeed = -this.vel.y;
+    if (this.flying) { this.updateFlight(dt); return; }
     const k = this.keys;
     const moving = this.enabled;
     const fwd = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
@@ -151,7 +155,81 @@ export class Player {
     if (this.onGround && hs > 0.5) this.bob += dt * hs * 1.6;
     const bobY = Math.sin(this.bob * 2) * 0.05 * Math.min(1, hs / 5);
     this.camera.position.set(p.x, p.y + EYE + this.eyeOffset + bobY, p.z);
-    this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    this.roll *= Math.max(0, 1 - dt * 6);
+    this.camera.rotation.set(this.pitch, this.yaw, this.roll, 'YXZ');
+    this.setFov(75, dt);
+    this.lastYaw = this.yaw;
     this.speed = hs;
+  }
+
+  setFov(target, dt) {
+    const c = this.camera;
+    if (Math.abs(c.fov - target) < 0.05) return;
+    c.fov += (target - c.fov) * Math.min(1, dt * 4);
+    c.updateProjectionMatrix();
+  }
+
+  setFlying(on) {
+    this.flying = on;
+    this.onGround = false;
+    if (on) this.vel.y = Math.max(this.vel.y, 4);
+  }
+
+  // Voo de vassoura: segue a direção do olhar, com inércia e turbo
+  updateFlight(dt) {
+    const k = this.keys, on = this.enabled;
+    const look = this.forward();
+    const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const wish = new THREE.Vector3();
+    let strafe = 0;
+    if (on) {
+      if (k.KeyW || k.ArrowUp) wish.add(look);
+      if (k.KeyS || k.ArrowDown) wish.addScaledVector(look, -0.5);
+      if (k.KeyD || k.ArrowRight) { wish.add(right); strafe += 1; }
+      if (k.KeyA || k.ArrowLeft) { wish.sub(right); strafe -= 1; }
+      if (k.Space) wish.y += 1;
+      if (k.KeyC) wish.y -= 1;
+    }
+    const boost = on && (k.ShiftLeft || k.ShiftRight);
+    this.boosting = boost && wish.lengthSq() > 0;
+    const max = boost ? 24 : 12;
+    if (wish.lengthSq() > 1) wish.normalize();
+    const moving = wish.lengthSq() > 0;
+    this.vel.lerp(wish.multiplyScalar(max), Math.min(1, (moving ? 1.8 : 1.2) * dt));
+    this.vel.add(this.knock);
+    this.knock.set(0, 0, 0);
+
+    // movimento em subpassos para não atravessar paredes em alta velocidade
+    const p = this.pos;
+    const dist = this.vel.length() * dt;
+    const steps = Math.max(1, Math.ceil(dist / 0.3));
+    const sdt = dt / steps;
+    this.onGround = false;
+    for (let i = 0; i < steps; i++) {
+      for (const ax of ['x', 'z', 'y']) {
+        const n = p[ax] + this.vel[ax] * sdt;
+        const tx = ax === 'x' ? n : p.x, ty = ax === 'y' ? n : p.y, tz = ax === 'z' ? n : p.z;
+        if (!this.collides(tx, ty, tz)) { p[ax] = n; continue; }
+        if (ax === 'y' && this.vel.y < 0) { p.y = Math.floor(n) + 1; this.onGround = true; }
+        this.vel[ax] = 0;
+      }
+    }
+    p.x = Math.max(2, Math.min(this.world.sx - 2, p.x));
+    p.z = Math.max(2, Math.min(this.world.sz - 2, p.z));
+    p.y = Math.min(p.y, 110);
+
+    // câmera: inclina nas curvas, balança de leve e abre o campo de visão com a velocidade
+    let dyaw = this.yaw - this.lastYaw;
+    dyaw = Math.atan2(Math.sin(dyaw), Math.cos(dyaw));
+    this.lastYaw = this.yaw;
+    const targetRoll = Math.max(-0.45, Math.min(0.45, (dyaw / Math.max(dt, 1e-3)) * 0.12 - strafe * 0.12));
+    this.roll += (targetRoll - this.roll) * Math.min(1, dt * 5);
+    this.speed = this.vel.length();
+    this.bob += dt;
+    const hover = this.onGround ? 0 : Math.sin(this.bob * 2.2) * 0.08;
+    this.eyeOffset += (0 - this.eyeOffset) * Math.min(1, 12 * dt);
+    this.camera.position.set(p.x, p.y + EYE + hover, p.z);
+    this.camera.rotation.set(this.pitch, this.yaw, this.roll, 'YXZ');
+    this.setFov(75 + Math.min(20, this.speed * 0.8), dt);
   }
 }

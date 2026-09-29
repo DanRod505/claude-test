@@ -200,6 +200,24 @@ export class Audio {
     s.connect(fl).connect(this.windGain).connect(this.amb);
     s.start(); lfo.start();
     this.cricketT = 0;
+    // vento do voo de vassoura
+    const fs = c.createBufferSource();
+    fs.buffer = this.noiseBuf; fs.loop = true;
+    this.flightFilter = c.createBiquadFilter();
+    this.flightFilter.type = 'bandpass'; this.flightFilter.Q.value = 0.6; this.flightFilter.frequency.value = 400;
+    this.flightGain = c.createGain();
+    this.flightGain.gain.value = 0;
+    fs.connect(this.flightFilter).connect(this.flightGain).connect(this.sfx);
+    fs.start();
+  }
+
+  // Vento proporcional à velocidade enquanto voa (0 = parado / a pé)
+  updateFlight(speed) {
+    if (!this.ready) return;
+    const t = this.ctx.currentTime;
+    const k = Math.min(1, speed / 24);
+    this.flightGain.gain.setTargetAtTime(speed > 0 ? 0.04 + k * 0.5 : 0, t, 0.15);
+    this.flightFilter.frequency.setTargetAtTime(300 + k * 1500, t, 0.15);
   }
 
   // Chamado a cada quadro: ajusta vento (ao ar livre) e grilos (à noite)
@@ -325,6 +343,19 @@ const SOUNDS = {
   place: (a, v, pan) => {
     a.tone({ f: 180, f2: 70, dur: 0.14, vol: 0.3 * v, pan });
     a.noise({ dur: 0.1, vol: 0.2 * v, type: 'lowpass', f: 1200, pan });
+  },
+  // --- vassoura e Pomo ---
+  broomUp: (a, v) => {
+    a.noise({ dur: 0.6, vol: 0.3 * v, type: 'bandpass', f: 300, f2: 2200, q: 0.8, attack: 0.05 });
+    [67, 71, 74, 79].forEach((n, i) => a.bell(NOTE(n), { vol: 0.07 * v, dur: 0.5, delay: 0.05 + i * 0.06 }));
+  },
+  broomDown: (a, v) => {
+    a.noise({ dur: 0.4, vol: 0.2 * v, type: 'bandpass', f: 1800, f2: 300, q: 0.8 });
+    a.tone({ f: 160, f2: 70, dur: 0.18, vol: 0.2 * v, delay: 0.25 });
+  },
+  snitch: (a, v, pan) => {
+    a.tone({ type: 'sawtooth', f: 180, dur: 0.3, vol: 0.05 * v, pan, lp: 900, vib: 60 });
+    a.bell(NOTE(96 + Math.floor(Math.random() * 5)), { vol: 0.04 * v, dur: 0.3, pan });
   },
   // --- jogador ---
   step: (a, v, pan, o) => {

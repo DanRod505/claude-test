@@ -575,6 +575,7 @@ export function generateHogwarts(world) {
       feather: { x: 44.5, y: F + 1.3, z: 64.5 },
       braziers: [[124.5, 117.5], [140.5, 118.5], [124.5, 131.5]].map(([x, z]) => ({ x, y: surface(x, z), z })),
       pixieArea: { x0: 100, x1: 122, y0: F + 1, y1: F + 6, z0: 62, z1: 80 },
+      snitchArea: { cx: PITCH.cx, cz: PITCH.cz, rx: PITCH.rx - 2, rz: PITCH.rz + 4, y0: F + 3, y1: F + 22 },
       cards: [
         { x: 136.5, y: aTop + 1.4, z: 67.5 },
         { x: 48.5, y: gTop + 1.4, z: 24.5 },
